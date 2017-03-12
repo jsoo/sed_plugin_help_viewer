@@ -1,13 +1,13 @@
 <?php
 
 $plugin['name'] = 'sed_plugin_help_viewer';
-$plugin['version'] = '0.4';
+$plugin['version'] = '0.4.1';
 $plugin['author'] = 'Netcarver';
 $plugin['author_uri'] = 'http://txp-plugins.netcarving.com';
 $plugin['description'] = 'Quickly check your plugin\'s help section from the plugin cache dirctory.';
 $plugin['type'] = 1;
 
-@include_once('../zem_tpl.php');
+@include_once('zem_tpl.php');
 
 # --- BEGIN PLUGIN CODE ---
 if(@txpinterface == 'admin') 
@@ -172,7 +172,7 @@ function _sed_list_plugins_from_cache($message='')
 		{
 		foreach($filenames as $filename)
 			{
-			$fileext= array_pop(explode ('.',$filename));
+			$fileext= ltrim(strrchr($filename, '.'), '.');
 			if ($fileext==='php')
 				{
 				$elink = '<a href="?event=sed_plugin_help_viewer&#38;step=view_help&#38;filename='.$filename.'">'.(isset($plugin['name']) ? $plugin['name'] : $filename).'</a>';
@@ -211,6 +211,10 @@ Allows you to view the help section of any plugin in your cache directory.
 If the file matches ZEM's template then the help section will get run through the textile formatter before display, otherwise it will be treated as straight HTML.
 
 h2(#versions). Version History
+
+v0.4.1 (https://github.com/jsoo/sed_plugin_help_viewer)
+
+* Fixed "passed by reference" error notice when running in PHP strict mode
 
 v0.4
 
