@@ -1,8 +1,8 @@
 <?php
 
-$plugin['version'] = '0.4.1';
+$plugin['version'] = '1.0.0-alpha';
 $plugin['author'] = 'Netcarver';
-$plugin['author_uri'] = 'http://txp-plugins.netcarving.com';
+$plugin['author_uri'] = 'https://github.com/netcarver';
 $plugin['description'] = 'Quickly check your plugin\'s help section from the plugin cache dirctory.';
 $plugin['type'] = 1;
 $plugin['allow_html_help'] = 1;
@@ -10,7 +10,7 @@ $plugin['allow_html_help'] = 1;
 if (! defined('txpinterface')) {
     global $compiler_cfg;
     @include_once('config.php');
-    @include_once($compiler_cfg['path']);
+    include_once($compiler_cfg['path']);
 }
 
 # --- BEGIN PLUGIN CODE ---
@@ -19,6 +19,9 @@ if(@txpinterface == 'admin') {
     register_tab('extensions', 'sed_plugin_help_viewer', 'Help Viewer');
     register_callback('sed_plugin_help_viewer', 'sed_plugin_help_viewer');
 }
+
+define('PLUGIN_CACHE_DIR', rtrim($GLOBALS['prefs']['plugin_cache_dir'], DS).DS);
+define('SED_HELP_DIR', PLUGIN_CACHE_DIR.'sed_plugin_help'.DS);
 
 function sed_plugin_help_viewer ($event, $step) 
 {
@@ -35,68 +38,85 @@ function view_help($message='')
 
     $filename = gps('filename');
     $plugin = array();
-
-    if (!empty($filename)) {
-        $content = file($filename);
-        $source_lines = count($content);
-        $format = 'none';
-
-        for ($i=0; $i < $source_lines; $i++) {
-            $content[$i] = rtrim($content[$i]);
-        }
-
-        $format = 'unknown';
-
-        //  Check for ZEM plugin...
-        $plugin['help'] = _zem_extract_section($content, 'HELP');
-        if ( '' != $plugin['help']) {
-            $format = 'zem_help';
-        } else {
-            //  check for ied style help section...
-            $plugin['help'] = _ied_extract_section($content, 'HELP');
-            if ('' != $plugin['help']) {
-                $format = 'ied_help';
-            }
-        }
-
-        echo startTable('edit');
-        
-        switch( $format ) {
-            case 'zem_help':
-                echo tr(tda( '<p>Plugin is in zem template format.</p>', ' width="600"'));
-                if (!isset($plugin['allow_html_help']) or (0 === $plugin['allow_html_help'])) {
-                    #   Textile...
-                    $plugin['css']  = _zem_extract_section($content, 'CSS');
-                    include_once txpath.'/lib/classTextile.php';
-                    if (class_exists('Textile')) {
-                        $textile = new Textile();
-                        $plugin['help'] = $plugin['css'].n.$textile->TextileThis($plugin['help']);
-                        echo tr(tda( '<p>Extracted and Textile processed help section follows&#8230;</p><hr>', ' width="600"'));
-                    } else {
-                        echo tr(tda('<p>Extracted help section follows, <strong>Textile Processing Failed</strong>&#8230;</p><hr>', ' width="600"'));
-                    }
-                } else {
-                    # (x)html...
-                    $plugin['css']  = _zem_extract_section($content, 'CSS' );
-                    $plugin['help'] = $plugin['css'].n.$plugin['help_raw'];
-                }
-                echo tr(tda($plugin['help'], ' width="600"'));
-                break;
-            case 'ied_help':
-                echo tr(tda('<p>Plugin is in ied template format.</p>', ' width="600"'));
-                echo tr(tda('<p>Extracted raw help section follows&#8230;</p><hr>', ' width="600"'));
-                echo tr(tda($plugin['help'], ' width="600"'));
-                break;
-            default:        
-                echo tr(tda( '<p><strong>Unknown plugin file format or empty help section.</strong></p><hr>', ' width="600"'));
-                break;
-        }
-
-        echo endTable();
-        
-    } else {
+    
+    if (! $filename) {
         echo 'Help not accessible from that file.';
+        return;
     }
+
+    $content = file($filename);
+    $formats = array(
+        'zem_help' => 'ZEM Template',
+        'ied_help' => 'IED Template',
+        'textile'  => 'Textile',
+        'markdown' => 'Markdown',
+    );
+    $format = 'unknown';
+
+    for ($i = 0; $i < count($content); $i++) {
+        $content[$i] = rtrim($content[$i]);
+    }
+
+    if ($plugin['help'] = _zem_extract_section($content, 'HELP')) {
+        $format = 'zem_help';
+    } elseif ($plugin['help'] = _ied_extract_section($content, 'HELP')) {
+        $format = 'ied_help';
+    } elseif ($syntax = _sed_plugin_list_syntax(ltrim(strrchr($filename, '.'), '.'))) {
+        if ($plugin['help'] = sed_plugin_help_parse($content, $syntax)) {
+            $format = $syntax;
+        }
+    }
+
+    echo startTable('edit');
+    $table_rows = array();
+    if ($format != 'unknown') {
+        $table_rows[] = tr(tda( '<p>Help text extracted from <strong>'.$formats[$format].'</strong> file.</p>', ' width="600"'));
+    }
+    switch( $format ) {
+        case 'unknown':        
+            $table_rows[] =  tr(tda( '<p><strong>Unknown format or empty help section.</strong></p><hr>', ' width="600"'));
+            break;
+        case 'zem_help':
+            $plugin['css']  = _zem_extract_section($content, 'CSS');
+            if (empty($plugin['allow_html_help'])) {
+                include_once txpath.'/lib/classTextile.php';
+                if (class_exists('Textile')) {
+                    $textile = new Textile();
+                    $plugin['help'] = $plugin['css'].n.$textile->TextileThis($plugin['help']);
+                }
+            } else {
+                $plugin['help'] = $plugin['css'].n.$plugin['help_raw'];
+            }
+        default:
+            $table_rows[] =  tr(tda($plugin['help'], ' width="600"'));
+            break;
+    }
+    echo implode("\n", $table_rows);
+    echo endTable();
+        
+}
+
+function sed_plugin_help_parse($content, $syntax)
+{    
+    if (is_array($content)) {
+        $content = trim(join("\n", $content));
+    }
+    
+    if ($syntax === 'textile' && class_exists('Netcarver\\Textile\\Parser')) {
+        $parser = new \Netcarver\Textile\Parser('html5');
+        return $parser->TextileThis($content);
+        
+    } elseif ($syntax === 'markdown') {
+        if (class_exists('\Textpattern\Loader')) {
+            Txp::get('\Textpattern\Loader', txpath.'/vendors/parsedown')->register();
+        }
+        if (class_exists('Parsedown')) {
+            $parser = new Parsedown();
+            return $parser->text($content);
+        }
+    }
+    
+    return '';
 }
 
 function _zem_extract_section($lines, $section) 
@@ -137,45 +157,56 @@ function _ied_extract_section($lines, $section)
 
 function _sed_list_plugins_from_cache($message='') 
 {
+    $exts = array_keys(_sed_plugin_list_syntax());
+    
     pagetop(gTxt('edit_plugins'),$message);
     echo startTable('list');
 
-    $filenames = array();
+    $files = array();
 
-    if (!empty($GLOBALS['prefs']['plugin_cache_dir'])) {
-        $dir = dir($GLOBALS['prefs']['plugin_cache_dir']);
-        while ($file = $dir->read()) {
-            if($file != '.' && $file != '..') {
-                $fileaddr = $GLOBALS['prefs']['plugin_cache_dir'].DS.$file;
-
-                if (!is_dir($fileaddr)) {
-                    $filenames[]=$fileaddr;
+    if (is_dir(PLUGIN_CACHE_DIR)) {
+        if (is_dir(SED_HELP_DIR)) {
+            $helpDirs = glob(SED_HELP_DIR.'*', GLOB_ONLYDIR);
+            foreach ($helpDirs as $d) {
+                foreach (glob($d.DS.'README.{'.implode(',', $exts).'}', GLOB_BRACE) as $helpFile) {
+                    $files[] = $helpFile;
                 }
             }
         }
-        $dir->close();
-        ($filenames and (count($filenames) > 0) ) ? natcasesort($filenames) : '';
+        foreach (glob(PLUGIN_CACHE_DIR.'*.php') as $plugin) {
+            $files[] = $plugin;
+        }
     }
-
+    
     echo tr(
     tda(
-    tag('Plugins found in the plugin cache directory: '.$GLOBALS['prefs']['plugin_cache_dir'],'h1')
+    tag('README and plugin files found in the cache:','h1')
     ,' colspan="1" style="border:0;height:50px;text-align:left"')
     );
 
     echo assHead('plugin');
 
-    if (count( $filenames ) > 0) {
-        foreach($filenames as $filename) {
-            $fileext= ltrim(strrchr($filename, '.'), '.');
-            if ($fileext==='php') {
-                $elink = '<a href="?event=sed_plugin_help_viewer&#38;step=view_help&#38;filename='.$filename.'">'.(isset($plugin['name']) ? $plugin['name'] : $filename).'</a>';
+    if (count( $files ) > 0) {
+        foreach($files as $f) {
+            $fileext = ltrim(strrchr($f, '.'), '.');
+            if (in_array($fileext, $exts) || $fileext == 'php') {
+                $elink = '<a href="?event=sed_plugin_help_viewer&#38;step=view_help&#38;filename='.$f.'">'.(isset($plugin['name']) ? $plugin['name'] : $f).'</a>';
                 echo tr(td(strong($elink)));
             }
         }
     }
 
     echo endTable();
+}
+
+function _sed_plugin_list_syntax($ext = null)
+{
+    $types = array(
+        'md' => 'markdown',
+        'markdown' => 'markdown',
+        'textile' => 'textile'
+    );
+    return $ext && isset($types[$ext]) ? $types[$ext] : $types;
 }
 
 # --- END PLUGIN CODE ---

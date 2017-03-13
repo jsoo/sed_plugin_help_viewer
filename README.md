@@ -1,20 +1,46 @@
-# sed_plugin_help_viewer
+# sed_plugin_help_viewer Mark II
 
-Plugin Help Section Viewer
+## Overview
 
-A plugin for Textpattern [http://textpattern.com](http://textpattern.com)
+A plugin for [Textpattern](http://textpattern.com). Extended from the original [sed_plugin_help_viewer](https://github.com/netcarver/sed_plugin_help_viewer) by [netcarver](https://github.com/netcarver).
 
-Allows you to view the help section of any plugin in your cache directory.
+Just as the Textpattern plugin cache speeds plugin development, **sed_plugin_help_viewer** speeds help text authoring, by previewing formatted help text from files in the cache. Like the original version, **Mark II** works for plugin source files in the ZEM and IED template formats. Its major new feature is that it also works with standalone Textile and Markdown README files.
 
-If the file matches ZEM's template then the help section will get run through the textile formatter before display, otherwise it will be treated as straight HTML.
+This version: https://github.com/jsoo/sed_plugin_help_viewer
+
+## Configuration
+
+Install the plugin [in the usual manner](https://docs.textpattern.io/administration/plugins-panel). (It is an unobtrusive plugin and does not install any extras, neither in the database nor elsewhere.)
+
+Enable the Textpattern plugin cache: in the [Textpattern preferences panel](https://docs.textpattern.io/administration/preferences-panel), under **Admin preferences**, enter the file path for the directory you want to use. (NB: do not use the Temporary directory for this.) For plugin help text in the old ZEM or IED template format, add your plugin source files to this directory: this is all you need to do to use the Help Viewer. 
+
+Of course the main purpose of this cache is to allow you to load plugins without installing them, which is a great help for plugin development, but generally a bad idea in a production environment. The cache has precedence: if a plugin is installed and also in the cache, the cached version is the one that actually loads.
+
+**sed_plugin_help_viewer Mark II** allows separating help text from the plugin code source file into its own README file, either in Textile or Markdown format. This allows you to use a single file as a standard README (such as you'll want to use on, e.g., GitHub, or if you otherwise distribute your plugin as uncompiled source files) and for the help text of your installed plugin. Of course if you use separate code and help files in this way, you'll need something other than the [default plugin template and compiler](https://github.com/textpattern/textpattern-plugin-template). The version at [https://github.com/jsoo/textpattern-plugin-template](https://github.com/jsoo/textpattern-plugin-template) is designed for this (make sure it is the `dev` branch).
+
+### To enable the Mark II features:
+
+Add a directory named `sed_plugin_help` to your plugin cache directory. For each of your plugins, add a directory containing the README file to the `sed_plugin_help` directory. The file must be named `README.md`, `README.markdown`, or `README.textile`.
+
+For Textpattern 4.6 and later, you are now ready to preview `README.textile` files. For Markdown parsing, you will have to install [parsedown](https://github.com/erusev/parsedown). Copy the parsedown directory (or a symbolic link pointing to it) to `textpattern/vendors`.
+
+You may prefer to use symbolic links (i.e., aliases) from your plugin repos to the above directories.
+
+## Usage
+
+The Help Viewer is accessible under [Extensions](https://docs.textpattern.io/administration/extensions-region). (NB: you cannot access the Extensions region from the Plugins panel.) The Help Viewer landing page lists all `.php` files in the plugin cache and all `README.md` (or `.markdown` or `.textile`) files in directories within the `sed_plugin_help` directory. Click on an item in the list to view the formatted help text.
 
 ## Version History
+
+### v1.0.0-alpha (March 12th, 2017)
+
+**sed_plugin_help_viewer Mark II**, capable of previewing standalone Textile and Markdown README files.
 
 ### v0.4.1 (March 12th, 2017)
 
 (Forked to https://github.com/jsoo/sed_plugin_help_viewer)
 
-* Fixed "passed by reference" error notice when running in PHP strict mode
+* Fixed "passed by reference" error notice when running in PHP strict mode.
 
 ### v0.4 (September 6th, 2008)
 
