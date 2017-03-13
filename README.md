@@ -6,7 +6,7 @@ A plugin for [Textpattern](http://textpattern.com). Extended from the original [
 
 Just as the Textpattern plugin cache speeds plugin development, **sed_plugin_help_viewer** speeds help text authoring, by previewing formatted help text from files in the cache. Like the original version, **Mark II** works for plugin source files in the ZEM and IED template formats. Its major new feature is that it also works with standalone Textile and Markdown README files.
 
-This version: https://github.com/jsoo/sed_plugin_help_viewer
+This version: https://github.com/jsoo/sed_plugin_help_viewer (use the `dev` branch)
 
 ## Configuration
 
