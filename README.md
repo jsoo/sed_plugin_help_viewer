@@ -6,7 +6,7 @@ A plugin for [Textpattern](http://textpattern.com). Extended from the original [
 
 Just as the Textpattern plugin cache speeds code development, **soo_plugin_help_viewer** speeds help-text editing. If you use the ZEM or IED plugin template, **soo_plugin_help_viewer** gives a formatted preview of the help section. That's how netcarver's original version worked; the purpose of **soo_plugin_help_viewer** is to extend that functionality to standalone Textile and Markdown README files.
 
-* [Support forum topic](https://forum.textpattern.io/viewtopic.php?id=31718)
+* [Support forum topic](https://forum.textpattern.io/viewtopic.php?id=47690)
 * [Author site](http://ipsedixit.net/txp/)
 * [GitHub](https://github.com/jsoo/soo_plugin_help_viewer)
 
