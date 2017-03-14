@@ -1,9 +1,9 @@
 <?php
 
-$plugin['version'] = '1.0.0-alpha';
-$plugin['author'] = 'Netcarver';
-$plugin['author_uri'] = 'https://github.com/netcarver';
-$plugin['description'] = 'Quickly check your plugin\'s help section from the plugin cache dirctory.';
+$plugin['version'] = '1.0.0-beta';
+$plugin['author'] = 'Jeff Soo';
+$plugin['author_uri'] = 'http://ipsedixit.net/txp/';
+$plugin['description'] = 'Preview formatted help text from files in the plugin cache dirctory.';
 $plugin['type'] = 1;
 $plugin['allow_html_help'] = 1;
 
@@ -15,15 +15,15 @@ if (! defined('txpinterface')) {
 
 # --- BEGIN PLUGIN CODE ---
 if(@txpinterface == 'admin') {
-    add_privs('sed_plugin_help_viewer','1,2');
-    register_tab('extensions', 'sed_plugin_help_viewer', 'Help Viewer');
-    register_callback('sed_plugin_help_viewer', 'sed_plugin_help_viewer');
+    add_privs('soo_plugin_help_viewer','1,2');
+    register_tab('extensions', 'soo_plugin_help_viewer', 'Help Viewer');
+    register_callback('soo_plugin_help_viewer', 'soo_plugin_help_viewer');
 }
 
 define('PLUGIN_CACHE_DIR', rtrim($GLOBALS['prefs']['plugin_cache_dir'], DS).DS);
-define('SED_HELP_DIR', PLUGIN_CACHE_DIR.'sed_plugin_help'.DS);
+define('SOO_HELP_DIR', PLUGIN_CACHE_DIR.'readme'.DS);
 
-function sed_plugin_help_viewer ($event, $step) 
+function soo_plugin_help_viewer ($event, $step) 
 {
     if (!$step or !in_array($step , array('view_help'))) {
         _sed_list_plugins_from_cache();
@@ -61,8 +61,8 @@ function view_help($message='')
         $format = 'zem_help';
     } elseif ($plugin['help'] = _ied_extract_section($content, 'HELP')) {
         $format = 'ied_help';
-    } elseif ($syntax = _sed_plugin_list_syntax(ltrim(strrchr($filename, '.'), '.'))) {
-        if ($plugin['help'] = sed_plugin_help_parse($content, $syntax)) {
+    } elseif ($syntax = _soo_plugin_list_syntax(ltrim(strrchr($filename, '.'), '.'))) {
+        if ($plugin['help'] = soo_plugin_help_parse($content, $syntax)) {
             $format = $syntax;
         }
     }
@@ -96,7 +96,7 @@ function view_help($message='')
         
 }
 
-function sed_plugin_help_parse($content, $syntax)
+function soo_plugin_help_parse($content, $syntax)
 {    
     if (is_array($content)) {
         $content = trim(join("\n", $content));
@@ -157,7 +157,7 @@ function _ied_extract_section($lines, $section)
 
 function _sed_list_plugins_from_cache($message='') 
 {
-    $exts = array_keys(_sed_plugin_list_syntax());
+    $exts = array_keys(_soo_plugin_list_syntax());
     
     pagetop(gTxt('edit_plugins'),$message);
     echo startTable('list');
@@ -165,19 +165,19 @@ function _sed_list_plugins_from_cache($message='')
     $files = array();
 
     if (is_dir(PLUGIN_CACHE_DIR)) {
-        if (is_dir(SED_HELP_DIR)) {
-            $helpDirs = glob(SED_HELP_DIR.'*', GLOB_ONLYDIR);
+        if (is_dir(SOO_HELP_DIR)) {
+            $helpDirs = glob(SOO_HELP_DIR.'*', GLOB_ONLYDIR);
             foreach ($helpDirs as $d) {
                 foreach (glob($d.DS.'README.{'.implode(',', $exts).'}', GLOB_BRACE) as $helpFile) {
-                    $files[] = $helpFile;
+                    $files[str_replace(SOO_HELP_DIR, '', $helpFile)] = $helpFile;
                 }
             }
         }
         foreach (glob(PLUGIN_CACHE_DIR.'*.php') as $plugin) {
-            $files[] = $plugin;
+            $files[substr($plugin, strrpos($plugin, DS) + 1)] = $plugin;
         }
     }
-    
+   
     echo tr(
     tda(
     tag('README and plugin files found in the cache:','h1')
@@ -187,10 +187,10 @@ function _sed_list_plugins_from_cache($message='')
     echo assHead('plugin');
 
     if (count( $files ) > 0) {
-        foreach($files as $f) {
+        foreach($files as $n => $f) {
             $fileext = ltrim(strrchr($f, '.'), '.');
             if (in_array($fileext, $exts) || $fileext == 'php') {
-                $elink = '<a href="?event=sed_plugin_help_viewer&#38;step=view_help&#38;filename='.$f.'">'.(isset($plugin['name']) ? $plugin['name'] : $f).'</a>';
+                $elink = '<a href="?event=soo_plugin_help_viewer&#38;step=view_help&#38;filename='.$f.'">'.$n.'</a>';
                 echo tr(td(strong($elink)));
             }
         }
@@ -199,7 +199,7 @@ function _sed_list_plugins_from_cache($message='')
     echo endTable();
 }
 
-function _sed_plugin_list_syntax($ext = null)
+function _soo_plugin_list_syntax($ext = null)
 {
     $types = array(
         'md' => 'markdown',
